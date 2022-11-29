@@ -1,9 +1,15 @@
 package main
 
 import (
+	"os"
+	"syscall"
+
+	"goimap/pkg/account"
+
 	"github.com/gookit/slog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	log "go.uber.org/zap"
 )
 
 type DaemonConfig struct {
@@ -37,8 +43,41 @@ func NewDaemonCmd(appConfig *AppConfig) *DaemonCmd {
 	return &daemonCmd
 }
 
-func (cmd *DaemonCmd) Main(config *DaemonConfig, appConfig *AppConfig) error {
-	slog.Infof("%+v\n", config)
+func (cmd *DaemonCmd) Main(daemonConfig *DaemonConfig, appConfig *AppConfig) {
 
-	return nil
+	if err := ReadConfigFile(appConfig.ConfigFile); err != nil {
+		slog.Fatalf("%v\n", err)
+	}
+
+	manager := account.NewAccountManager()
+	if err := manager.InitFromViper(); err != nil {
+		slog.Fatalf("%v\n", err)
+	}
+
+	manager.SyncAllAccounts()
+
+	done := make(chan any, 1)
+	sigs := newOSWatcher(syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	hits := 2
+	for {
+		select {
+		case s := <-sigs:
+			switch s {
+			case syscall.SIGINT:
+				log.S().Infof("Received signal \"%v\", shutting down.", s)
+				if hits == 2 {
+					go func() {
+						manager.Shutdown()
+						manager.WaitAll()
+						done <- 1
+					}()
+				} else if hits == 0 {
+					os.Exit(1)
+				}
+				hits -= 1
+			}
+		case <-done:
+			os.Exit(0)
+		}
+	}
 }

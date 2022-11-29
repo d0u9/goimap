@@ -1,8 +1,8 @@
 package main
 
 import (
-	// "github.com/gookit/slog"
 	"github.com/spf13/pflag"
+	log "go.uber.org/zap"
 )
 
 type AppConfig struct {
@@ -16,16 +16,6 @@ type App struct {
 type Command interface {
 	Execute() error
 }
-
-/*
-func BindRootPersistentFlags(flags *pflag.FlagSet, appConfig *AppConfig) {
-    flags.StringVarP(&appConfig.ConfigFile, "config", "c", "", "config file")
-}
-
-func BindDaemonCmdFlags(flags *pflag.FlagSet, daemonConfig *DaemonConfig) {
-    flags.BoolVarP(&daemonConfig.Deamon, "deamon", "d", false, "run in background, by default goimap runs in foreground")
-}
-*/
 
 func AddAppFlags(flags *pflag.FlagSet, config *AppConfig) {
 	flags.StringVarP(&config.ConfigFile, "config", "c", "", "config file")
@@ -51,5 +41,6 @@ func NewApp() *App {
 }
 
 func (app *App) Run() error {
+	log.S().Infof("Running...")
 	return app.Execute()
 }

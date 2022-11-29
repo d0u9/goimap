@@ -1,0 +1,19 @@
+accounts:
+  server1:
+    remote:
+      host:       'imap.server1.com'
+      port:       993
+      username:   username
+      password:   pass1
+      keep_alive: 30
+      hold_connection: open
+    local:
+      type:       Maildir
+      folder:     ~/Mail/server1
+    max_age:     30
+    auto_refresh:    0.2
+
+general:
+  accounts:
+    - server1
+
